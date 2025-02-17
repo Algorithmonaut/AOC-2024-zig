@@ -1,4 +1,5 @@
 const std = @import("std");
+const parsers = @import("parser.zig");
 
 const input_array = @embedFile("input.txt");
 const number_of_lines = blk: {
@@ -12,103 +13,38 @@ const number_of_lines = blk: {
     break :blk count;
 };
 
-const Parser = struct {
-    pos: usize = 0,
-    start: usize = 0,
-    input: []const u8,
-
-    fn init(input: []const u8) Parser {
-        return .{ .input = input };
-    }
-
-    fn peek(self: *Parser) u8 {
-        if (self.pos >= self.input.len - 1) unreachable;
-        return self.input[self.pos];
-    }
-
-    fn advance(self: *Parser) void {
-        self.pos += 1;
-    }
-
-    fn set_start(self: *Parser) void {
-        self.start = self.pos;
-    }
-
-    fn is_at_end(self: *Parser) bool {
-        return self.pos >= self.input.len - 1;
-    }
-    fn is_at_number(self: *Parser) bool {
-        const c = self.input[self.pos];
-        return c >= '0' and c <= '9';
-    }
-};
-
 pub fn main() !void {
-    var parser = Parser.init(input_array);
-    var right: bool = false;
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
 
-    var left_numbers: [number_of_lines]i32 = undefined;
-    var right_numbers: [number_of_lines]i32 = undefined;
+    var allocator = arena.allocator();
 
-    var i: usize = 0;
+    var file_parser = parsers.Parser.init(input_array);
 
-    while (!parser.is_at_end()) {
-        while (!parser.is_at_number()) parser.advance();
-        parser.set_start();
-        while (parser.is_at_number()) parser.advance();
-        std.debug.print("Number: {s}\n", .{parser.input[parser.start..parser.pos]});
+    while (!file_parser.is_at_end()) : (file_parser.advance()) {
+        if (file_parser.peek() != '\n') continue;
 
-        const number = try std.fmt.parseInt(i32, parser.input[parser.start..parser.pos], 10);
-        std.debug.print("Number: {}\n", .{number});
-        switch (right) {
-            false => left_numbers[i] = number,
-            true => {
-                right_numbers[i] = number;
-                i += 1;
-            },
-        }
+        const line_parser = parsers.Parser.init(
+            file_parser.input[file_parser.start..file_parser.pos],
+        );
 
-        right = !right;
+        file_parser.advance();
+        file_parser.set_start();
+
+        try parse_line(&allocator, line_parser);
     }
-
-    bubble_sort(&left_numbers);
-    bubble_sort(&right_numbers);
-
-    var sum: isize = 0;
-
-    for (left_numbers, right_numbers) |left_number, right_number| {
-        std.debug.print("{}:{}\n", .{ left_number, right_number });
-
-        const value: i32 = left_number - right_number;
-        sum += blk: {
-            if (value < 0) {
-                break :blk -value;
-            } else break :blk value;
-        };
-    }
-
-    std.debug.print("{}\n", .{sum});
 }
 
-fn bubble_sort(array: []i32) void {
-    var swapped: bool = undefined;
+fn parse_line(allocator: *std.mem.Allocator, parser: parsers.Parser) !void {
+    const len = parser.input.len;
+    const slice_ptr = try allocator.alloc(u8, len);
 
-    while (true) {
-        swapped = false;
-
-        var i: usize = 0;
-        while (i < array.len - 1) : (i += 1) {
-            if (array[i] > array[i + 1]) {
-                const temp = array[i];
-                array[i] = array[i + 1];
-                array[i + 1] = temp;
-
-                swapped = true;
-            }
-        }
-
-        if (swapped == false) {
-            break;
-        }
+    for (parser.input, 0..) |c, i| {
+        slice_ptr[i] = c;
     }
+
+    for (slice_ptr) |c| {
+        std.debug.print("{c}", .{c});
+    }
+    std.debug.print("\n", .{});
 }

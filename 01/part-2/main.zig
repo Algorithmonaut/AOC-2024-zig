@@ -1,5 +1,4 @@
 const std = @import("std");
-const parsers = @import("../../utils/parser.zig");
 
 const input_array = @embedFile("input.txt");
 const number_of_lines = blk: {
@@ -13,8 +12,39 @@ const number_of_lines = blk: {
     break :blk count;
 };
 
+const Parser = struct {
+    pos: usize = 0,
+    start: usize = 0,
+    input: []const u8,
+
+    fn init(input: []const u8) Parser {
+        return .{ .input = input };
+    }
+
+    fn peek(self: *Parser) u8 {
+        if (self.pos >= self.input.len - 1) unreachable;
+        return self.input[self.pos];
+    }
+
+    fn advance(self: *Parser) void {
+        self.pos += 1;
+    }
+
+    fn set_start(self: *Parser) void {
+        self.start = self.pos;
+    }
+
+    fn is_at_end(self: *Parser) bool {
+        return self.pos >= self.input.len - 1;
+    }
+    fn is_at_number(self: *Parser) bool {
+        const c = self.input[self.pos];
+        return c >= '0' and c <= '9';
+    }
+};
+
 pub fn main() !void {
-    var parser = parsers.Parser.init(input_array);
+    var parser = Parser.init(input_array);
     var right: bool = false;
 
     var left_numbers: [number_of_lines]i32 = undefined;
