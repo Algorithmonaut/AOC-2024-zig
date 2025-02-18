@@ -5,16 +5,6 @@ const std = @import("std");
 const parsers = @import("parser.zig");
 
 const input_array = @embedFile("input.txt");
-const number_of_lines = blk: {
-    var count: usize = 0;
-
-    @setEvalBranchQuota(100000);
-    for (input_array) |c| {
-        if (c == '\n') count += 1;
-    }
-
-    break :blk count;
-};
 
 pub fn main() !void {
     var sum: usize = 0;
