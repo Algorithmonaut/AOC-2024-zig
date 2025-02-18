@@ -46,36 +46,41 @@ fn file_to_array(allocator: std.mem.Allocator, filepath: []const u8) ![][]u8 {
     return grid;
 }
 
-fn has_adjacent_char(
-    allocator: std.mem.Allocator,
+fn get_occurence_count(
     grid: [][]u8,
     pos: [2]isize,
-    char: u8,
-) !std.ArrayList([2]isize) {
-    var positions = std.ArrayList([2]isize).init(allocator);
+) void {
+    const directions = blk: {
+        var temp: [8][2]i8 = undefined;
+        var index: usize = 0;
 
-    for ([_]isize{ -1, 0, 1 }) |ri| {
-        for ([_]isize{ -1, 0, 1 }) |rj| {
-            if (ri == 0 and rj == 0) continue;
-
-            const i = pos[0] + ri;
-            const j = pos[1] + rj;
-
-            if (i < 0 or i >= grid.len) continue;
-            if (j < 0 or j >= grid[0].len) continue;
-
-            if (grid[@intCast(i)][@intCast(j)] == char) {
-                std.debug.print("Found {c} next to index {any}\n", .{
-                    char,
-                    pos,
-                });
-
-                try positions.append([_]isize{ i, j });
+        inline for ([_]i8{ -1, 0, 1 }) |dx| {
+            inline for ([_]i8{ -1, 0, 1 }) |dy| {
+                if (dx == 0 and dy == 0) continue;
+                temp[index] = .{ dx, dy };
+                index += 1;
             }
         }
-    }
 
-    return positions;
+        break :blk temp;
+    };
+
+    outer: for (directions) |direction| {
+        var pos_v: @Vector(2, isize) = pos;
+        const direction_v: @Vector(2, isize) = direction;
+
+        const letters: [4]u8 = .{ 'X', 'M', 'A', 'S' };
+
+        var i: usize = 0;
+        while (i <= 3) : (i += 1) {
+            if (pos_v[0] < 0 or pos_v[0] > grid.len - 1) continue :outer;
+            if (pos_v[1] < 0 or pos_v[1] > grid[0].len - 1) continue :outer;
+            if (grid[@intCast(pos_v[0])][@intCast(pos_v[1])] != letters[i]) continue :outer;
+            pos_v += direction_v;
+        }
+
+        sum += 1;
+    }
 }
 
 pub fn main() !void {
@@ -93,28 +98,9 @@ pub fn main() !void {
     while (i < grid.len) : (i += 1) {
         var j: isize = 0;
         while (j < grid[0].len) : (j += 1) {
-            if (grid[@intCast(i)][@intCast(j)] == 'X') {
-                var poss_m = try has_adjacent_char(allocator, grid, [_]isize{ i, j }, 'M');
-
-                for (poss_m.items) |pos_m| {
-                    var poss_a = try has_adjacent_char(allocator, grid, pos_m, 'A');
-
-                    for (poss_a.items) |pos_a| {
-                        var poss_s = try has_adjacent_char(allocator, grid, pos_a, 'S');
-
-                        sum += poss_s.items.len;
-
-                        poss_s.clearAndFree();
-                    }
-
-                    poss_a.clearAndFree();
-                }
-
-                std.debug.print("\n{any}\n", .{poss_m.items});
-                poss_m.clearAndFree();
-            }
+            get_occurence_count(grid, .{ i, j });
         }
     }
 
-    std.debug.print("\n\n{}", .{sum});
+    std.debug.print("Sum: {}", .{sum});
 }
