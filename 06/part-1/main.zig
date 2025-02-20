@@ -2,41 +2,6 @@
 
 const std = @import("std");
 
-fn populate_set_and_guard_from_input(
-    set: *std.AutoHashMap([2]isize, void),
-    guard: *Guard,
-) !void {
-    const file = try std.fs.cwd().openFile("input.txt", .{});
-    defer file.close();
-
-    var buf_reader = std.io.bufferedReader(file.reader());
-    var reader = buf_reader.reader();
-
-    var row: isize = 0;
-    var col: isize = 0;
-
-    while (true) {
-        const byte = reader.readByte() catch |err| switch (err) {
-            error.EndOfStream => break,
-            else => return err,
-        };
-
-        if (byte == '\n') {
-            guard.max_pos[1] = col;
-            row += 1;
-            col = 0;
-            continue;
-        }
-
-        if (byte == '#') try set.put(.{ row, col }, {});
-        if (byte == '^') guard.position = .{ row, col };
-
-        col += 1;
-    }
-
-    guard.max_pos[0] = row;
-}
-
 const Guard = struct {
     position: [2]isize,
     pointing: enum { up, right, down, left },
@@ -85,6 +50,41 @@ const Guard = struct {
         return true;
     }
 };
+
+fn populate_set_and_guard_from_input(
+    set: *std.AutoHashMap([2]isize, void),
+    guard: *Guard,
+) !void {
+    const file = try std.fs.cwd().openFile("input.txt", .{});
+    defer file.close();
+
+    var buf_reader = std.io.bufferedReader(file.reader());
+    var reader = buf_reader.reader();
+
+    var row: isize = 0;
+    var col: isize = 0;
+
+    while (true) {
+        const byte = reader.readByte() catch |err| switch (err) {
+            error.EndOfStream => break,
+            else => return err,
+        };
+
+        if (byte == '\n') {
+            guard.max_pos[1] = col;
+            row += 1;
+            col = 0;
+            continue;
+        }
+
+        if (byte == '#') try set.put(.{ row, col }, {});
+        if (byte == '^') guard.position = .{ row, col };
+
+        col += 1;
+    }
+
+    guard.max_pos[0] = row;
+}
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
