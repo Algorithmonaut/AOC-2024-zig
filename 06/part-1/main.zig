@@ -99,17 +99,11 @@ pub fn main() !void {
     try populate_set_and_guard_from_input(&obstacle_positions_set, &guard);
 
     var iterator = obstacle_positions_set.keyIterator();
-    while (iterator.next()) |val| {
-        std.debug.print("Obstacle pos: {any}\n", .{val});
-    }
-
-    std.debug.print("Player pos: {any}\n", .{guard.position});
+    while (iterator.next()) |_| {}
 
     while (try guard.advance(&obstacle_positions_set)) {
         continue;
     }
-
-    std.debug.print("Final position: {any}\n", .{guard.position});
 
     std.debug.print("Counter: {}\n", .{guard.occupied_pos.count()});
 }
