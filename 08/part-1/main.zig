@@ -2,13 +2,19 @@ const std = @import("std");
 
 const print = std.debug.print;
 
-fn get_antenna_antinodes(locations: []const [2]i32) void {
+var width: i32 = undefined;
+var height: i32 = undefined;
+
+fn set_antenna_antinodes(
+    locations: []const [2]i32,
+    antinodes_pos: *std.hash_map.AutoHashMap([2]i32, void),
+) !void {
     for (locations) |base_location| {
         for (locations) |other_location| {
             if (std.mem.eql(i32, base_location[0..], other_location[0..]))
                 continue;
 
-            print("Base: {any}, other: {any}\n", .{ base_location, other_location });
+            // print("Base: {any}, other: {any}\n", .{ base_location, other_location });
 
             const relative_row = other_location[0] - base_location[0];
             const relative_col = other_location[1] - base_location[1];
@@ -16,7 +22,12 @@ fn get_antenna_antinodes(locations: []const [2]i32) void {
             const antinode_pos_row = base_location[0] - relative_row;
             const antinode_pos_col = base_location[1] - relative_col;
 
-            print("There should be an antinode at {} {}\n", .{ antinode_pos_row, antinode_pos_col });
+            if (antinode_pos_col >= width or antinode_pos_col < 0) continue;
+            if (antinode_pos_row >= height or antinode_pos_row < 0) continue;
+
+            // print("There should be an antinode at {} {}\n", .{ antinode_pos_row + 1, antinode_pos_col + 1 });
+
+            try antinodes_pos.put(.{ antinode_pos_row, antinode_pos_col }, {});
         }
     }
 }
@@ -42,7 +53,7 @@ pub fn main() !void {
         };
 
         if (is_antenna) {
-            print("Found antenna: {c} at {}-{} \n", .{ c, row, col });
+            // print("Found antenna: {c} at {}-{} \n", .{ c, row, col });
 
             const antenna = try antennas.getOrPut(c);
 
@@ -55,15 +66,21 @@ pub fn main() !void {
 
         col += 1;
         if (c == '\n') {
+            width = col - 1;
             row += 1;
             col = 0;
         }
     }
 
+    height = row;
+
+    var antinodes_pos = std.hash_map.AutoHashMap([2]i32, void).init(allocator);
+
     var it = antennas.iterator();
 
     while (it.next()) |entry| {
-        print("{c} -- {any}\n", .{ entry.key_ptr.*, entry.value_ptr.*.items });
-        get_antenna_antinodes(entry.value_ptr.items);
+        try set_antenna_antinodes(entry.value_ptr.items, &antinodes_pos);
     }
+
+    std.debug.print("Count: {}", .{antinodes_pos.count()});
 }
