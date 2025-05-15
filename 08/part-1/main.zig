@@ -36,7 +36,7 @@ pub fn main() !void {
     var da = std.heap.DebugAllocator(.{}){};
     const allocator = da.allocator();
 
-    const data = try std.fs.cwd().readFileAlloc(allocator, "input.txt", 4096);
+    const data = try std.fs.cwd().readFileAlloc(allocator, "input.txt", 16_777_216);
     defer allocator.free(data);
 
     var row: i32 = 0;
